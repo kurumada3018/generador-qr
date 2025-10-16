@@ -4,18 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Códigos QR de Acceso</title>
-    <!-- Incluye tus scripts y estilos como en la versión anterior -->
+    
     <script src="qrcode.min.js"></script>
-    <style>/* Pega aquí todos tus estilos de la versión anterior */</style>
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-image: url('IMG_8196.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #main-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1, h3 { text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="password"], select, input[type="date"] { box-sizing: border-box; width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;}
+        button { display: block; width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #qrcode-container { text-align: center; margin-top: 20px; }
+        #qrcode { display: inline-block; border: 5px solid white; box-shadow: 0 0 5px #aaa; }
+        #download-link { display: none; margin-top: 10px; text-align: center; }
+        #login-error { color: red; text-align: center; margin-top: 10px; }
+        #user-info { text-align: right; color: #555; }
+    </style>
 </head>
 <body>
+
     <div id="main-container">
-        <!-- Módulo de Login (sin cambios) -->
+
         <div id="login-container">
-            <!-- ... -->
+            <h1>Iniciar Sesión</h1>
+            <form id="login-form">
+                <div class="form-group"><label for="username">Usuario:</label><input type="text" id="username" required></div>
+                <div class="form-group"><label for="password">Contraseña:</label><input type="password" id="password" required></div>
+                <button type="submit">Ingresar</button>
+                <p id="login-error"></p>
+            </form>
         </div>
 
-        <!-- Módulo Generador (MODIFICADO) -->
         <div id="generator-container" style="display:none;">
             <p id="user-info"></p>
             <h1>Generador de QR de Acceso</h1>
@@ -23,54 +65,114 @@
                 <div class="form-group"><label for="nombre">Nombre Completo:</label><input type="text" id="nombre" required></div>
                 <div class="form-group"><label for="id">Número de Identificación (ID):</label><input type="text" id="id" required></div>
                 <hr>
-                
-                <!-- === NUEVO CAMPO PARA EL PARQUEADERO === -->
                 <div class="form-group">
                     <label for="parqueadero">Número de Parqueadero / Plaza:</label>
                     <input type="text" id="parqueadero" placeholder="Ej: A-15, Sótano 2 - 3B, etc.">
                 </div>
                 
+                <!-- === AQUÍ ESTÁ EL ÚNICO CAMBIO VISUAL === -->
                 <div class="form-group">
-                    <label for="validez">Validez del Permiso:</label>
-                    <select id="validez">
-                        <option value="1m">1 Mes</option>
-                        <option value="7d">7 Días</option>
-                        <option value="1d">24 Horas</option>
-                        <option value="3m">3 Meses</option>
-                        <option value="1y">1 Año</option>
-                        <option value="0">Nunca Expira</option>
-                    </select>
+                    <label for="fecha-exp">Fecha de Expiración (Opcional):</label>
+                    <input type="date" id="fecha-exp">
+                    <small>Dejar en blanco si el permiso nunca expira.</small>
                 </div>
                 <hr>
-
+                
                 <h3>Datos del Vehículo</h3>
-                <!-- ... campos de vehículo ... -->
+                <div class="form-group"><label for="vehiculo">Tipo de Vehículo:</label><input type="text" id="vehiculo" required></div>
+                <div class="form-group"><label for="modelo">Marca y Modelo:</label><input type="text" id="modelo" required></div>
+                <div class="form-group"><label for="placa">Placa / Matrícula:</label><input type="text" id="placa" required></div>
                 <button type="submit">Generar Código QR</button>
             </form>
-            <div id="qrcode-container"><!-- ... --></div>
+            <div id="qrcode-container"><div id="qrcode"></div><a id="download-link">Descargar QR</a></div>
         </div>
     </div>
 
     <script>
-        // ... (Tu URL de Gist de usuarios aquí)
-        // ... (El script de login no cambia)
+        const USERS_LIST_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+
+        let currentUser = null;
+        const loginForm = document.getElementById('login-form');
+        const loginContainer = document.getElementById('login-container');
+        const generatorContainer = document.getElementById('generator-container');
+        const accessForm = document.getElementById('access-form');
+        const loginError = document.getElementById('login-error');
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            loginError.textContent = 'Verificando...';
+            try {
+                const urlToFetch = USERS_LIST_URL + '?t=' + new Date().getTime();
+                const response = await fetch(urlToFetch);
+                if (!response.ok) throw new Error("No se pudo cargar la lista de usuarios.");
+                const users = await response.json();
+                const enteredPassHash = await hashPassword(password);
+                if (users[username] && users[username] === enteredPassHash) {
+                    currentUser = username;
+                    loginContainer.style.display = 'none';
+                    generatorContainer.style.display = 'block';
+                    document.getElementById('user-info').textContent = `Usuario: ${currentUser}`;
+                } else {
+                    throw new Error("Usuario o contraseña incorrectos.");
+                }
+            } catch (e) {
+                loginError.textContent = e.message;
+            }
+        });
 
         accessForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            // ... (Lógica para calcular la fecha de expiración, sin cambios)
-            // ...
+            
+            // --- LÓGICA ACTUALIZADA PARA LEER EL CALENDARIO ---
+            const fechaExpInput = document.getElementById('fecha-exp').value;
+            let expirationTimestamp = 0; // 0 = Nunca expira
+
+            if (fechaExpInput) {
+                // Se asegura de que la expiración sea al final del día seleccionado
+                const expirationDate = new Date(fechaExpInput + 'T23:59:59');
+                expirationTimestamp = expirationDate.getTime();
+            }
 
             const data = {
-                // ... (campos n, id, v, e, f, c, exp)
-                park: document.getElementById('parqueadero').value // <-- NUEVO CAMPO 'park' = parqueadero
+                n: document.getElementById('nombre').value,
+                id: document.getElementById('id').value,
+                v: {
+                    t: document.getElementById('vehiculo').value,
+                    m: document.getElementById('modelo').value,
+                    p: document.getElementById('placa').value
+                },
+                e: "A",
+                f: new Date().toLocaleDateString('es-ES'),
+                c: currentUser,
+                exp: expirationTimestamp,
+                park: document.getElementById('parqueadero').value
             };
 
             const dataString = JSON.stringify(data);
-            // ... (El resto del script para dibujar el QR no cambia)
+            const qrCodeContainer = document.getElementById('qrcode');
+            qrCodeContainer.innerHTML = '';
+            new QRCode(qrCodeContainer, { text: dataString, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+            
+            setTimeout(() => {
+                const qrImage = qrCodeContainer.querySelector('img');
+                const downloadLink = document.getElementById('download-link');
+                if (qrImage) {
+                    downloadLink.href = qrImage.src;
+                    downloadLink.download = `QR_Acceso_${data.n.replace(/\s/g, '_')}.png`;
+                    downloadLink.style.display = 'block';
+                }
+            }, 500);
         });
-
-        // Pega aquí el script completo de tu versión anterior para que no te falte nada.
-        // He omitido partes por brevedad. Lo importante es añadir el nuevo campo al formulario y al objeto 'data'.
     </script>
 </body>
 </html>
