@@ -2,70 +2,221 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>GENERADOR V4 - SEGURO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENERADOR V6 - PANEL DE CONTROL</title>
+    
+    <!-- Librerías de confianza -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; background: #1a1a2e; color: #333; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        input, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #e94560; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #qr-box { text-align: center; margin-top: 20px; display: none; }
-        canvas { border: 10px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .ver { font-size: 10px; color: #ccc; text-align: center; }
+        :root {
+            --primary: #e94560;
+            --secondary: #0f3460;
+            --bg: #1a1a2e;
+            --text: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at center, #16213e 0%, #1a1a2e 100%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        h2 { text-align: center; margin-bottom: 25px; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
+
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+            margin: 20px 0 10px 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .full-width { grid-column: span 2; }
+
+        label { display: block; margin-bottom: 5px; font-size: 13px; color: #bbb; }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(233, 69, 96, 0.3); }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        button:hover { background: #c62a48; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+
+        #qr-box {
+            margin-top: 30px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        canvas {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 5px solid #fff;
+        }
+
+        .btn-download {
+            display: block;
+            margin-top: 15px;
+            background: var(--secondary);
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .admin-footer { text-align: center; font-size: 10px; color: #555; margin-top: 20px; }
     </style>
 </head>
 <body>
-<div class="card">
-    <div id="login-section">
-        <h2 style="text-align:center">Admin V4</h2>
-        <input type="text" id="user" placeholder="Usuario">
-        <input type="password" id="pass" placeholder="Contraseña">
-        <button onclick="login()">INGRESAR</button>
+
+<div class="container">
+    <!-- LOGIN CARD -->
+    <div id="login-section" class="card">
+        <h2>🛡️ Terminal Admin</h2>
+        <div class="form-group">
+            <label>Identificación de Usuario</label>
+            <input type="text" id="user" placeholder="Escriba su usuario">
+        </div>
+        <br>
+        <div class="form-group">
+            <label>Clave de Acceso</label>
+            <input type="password" id="pass" placeholder="••••••••">
+        </div>
+        <button onclick="login()">AUTENTICAR</button>
     </div>
 
-    <div id="app-section" style="display:none">
-        <h2 style="text-align:center">Nuevo Registro</h2>
-        <label>Grado:</label><input type="text" id="g">
-        <label>Nombres:</label><input type="text" id="n">
-        <label>ID:</label><input type="text" id="i">
-        <label>Dependencia:</label><input type="text" id="d">
-        <label>Vehículo:</label><select id="t"><option>Carro</option><option>Moto</option><option>Bici</option></select>
-        <label>Color:</label><input type="text" id="c">
-        <label>Placa:</label><input type="text" id="p">
-        <label>Expira:</label><input type="date" id="e">
-        <button onclick="generar()">GENERAR QR</button>
+    <!-- MAIN APP CARD -->
+    <div id="app-section" class="card" style="display:none">
+        <h2>📝 Registro de Acceso</h2>
+        
+        <div class="section-title">👤 Datos del Titular</div>
+        <div class="form-grid">
+            <div class="form-group"><label>Grado</label><input type="text" id="g" placeholder="CT, MY, etc."></div>
+            <div class="form-group"><label>Dependencia</label><input type="text" id="d" placeholder="Oficina"></div>
+            <div class="form-group full-width"><label>Nombres y Apellidos</label><input type="text" id="n"></div>
+            <div class="form-group"><label>Cédula (ID)</label><input type="text" id="i"></div>
+            <div class="form-group"><label>Fecha Expiración</label><input type="date" id="e"></div>
+        </div>
+
+        <div class="section-title">🚗 Datos del Vehículo</div>
+        <div class="form-grid">
+            <div class="form-group"><label>Tipo</label>
+                <select id="t">
+                    <option value="Carro">Carro</option>
+                    <option value="Moto">Moto</option>
+                    <option value="Bicicleta">Bicicleta</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Color</label><input type="text" id="c"></div>
+            <div class="form-group full-width"><label>Placa / Matrícula</label><input type="text" id="p" placeholder="Letras y Números"></div>
+        </div>
+
+        <button onclick="generar()">GENERAR CREDENCIAL QR</button>
+
         <div id="qr-box">
             <canvas id="canvas"></canvas>
-            <p>Haz clic derecho en el QR para guardar</p>
+            <a id="link" class="btn-download">💾 GUARDAR IMAGEN QR</a>
         </div>
     </div>
-    <p class="ver">Versión de Seguridad: 4.0.1 (Industrial)</p>
+
+    <p class="admin-footer">SISTEMA DE SEGURIDAD ENCRIPTADO V6.0 - ACCESO RESTRINGIDO</p>
 </div>
 
 <script>
+    // IMPORTANTE: DEBE SER LA MISMA QUE EL VERIFICADOR
     const LLAVE_MAESTRA = "LLAVE_UNIVERSAL_99"; 
-    const GIST_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
-    let admin = "";
+    const GIST_USERS = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+    
+    let currentAdmin = "";
 
     async function login() {
         const u = document.getElementById('user').value;
         const p = document.getElementById('pass').value;
-        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)).then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
+        if(!u || !p) return alert("Complete los datos");
+
+        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p))
+            .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
+        
         try {
-            const r = await fetch(GIST_URL + '?t=' + Date.now());
+            const r = await fetch(GIST_USERS + '?t=' + Date.now());
             const data = await r.json();
             if(data[u] === hash) {
-                admin = u;
+                currentAdmin = u;
                 document.getElementById('login-section').style.display='none';
                 document.getElementById('app-section').style.display='block';
-            } else { alert("Acceso denegado"); }
-        } catch(e) { alert("Error de red"); }
+            } else { alert("Usuario o Clave no válidos."); }
+        } catch(e) { alert("Error al conectar con la base de datos."); }
     }
 
     function generar() {
-        // UNIÓN DE DATOS EN FORMATO ULTRA-COMPACTO
         const exp = document.getElementById('e').value;
+        const placa = document.getElementById('p').value;
+        if(!placa || !document.getElementById('n').value) return alert("Nombre y Placa son obligatorios.");
+
+        // Formato Pipe | compacto
         const dataStr = [
             document.getElementById('g').value,
             document.getElementById('n').value,
@@ -73,23 +224,30 @@
             document.getElementById('d').value,
             document.getElementById('t').value,
             document.getElementById('c').value,
-            document.getElementById('p').value,
+            placa.toUpperCase(),
             exp ? new Date(exp + 'T23:59:59').getTime() : 0,
-            admin
+            currentAdmin,
+            new Date().toLocaleDateString()
         ].join('|');
 
-        // ENCRIPTACIÓN AES
+        // Encriptar
         const cifrado = CryptoJS.AES.encrypt(dataStr, LLAVE_MAESTRA).toString();
         
-        // CONFIGURACIÓN DE QR PARA MÁXIMA LECTURA
+        // Generar
         new QRious({
             element: document.getElementById('canvas'),
             value: cifrado,
             size: 500,
-            level: 'L', // Nivel L permite puntos más grandes (mejor para archivos)
-            padding: 40 // Margen blanco crítico para que el lector lo vea
+            level: 'L',
+            padding: 40
         });
+
         document.getElementById('qr-box').style.display = 'block';
+        document.getElementById('link').href = document.getElementById('canvas').toDataURL();
+        document.getElementById('link').download = `QR_${placa.toUpperCase()}.png`;
+        
+        // Desplazar hacia abajo para ver el QR
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 </script>
 </body>
