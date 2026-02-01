@@ -3,166 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador QR - Sistema de Seguridad</title>
+    <title>Generador QR de Seguridad</title>
     
-    <!-- Librerías de confianza -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            background: #1a1a2e url('IMG_8196.jpg') no-repeat center center fixed;
-            background-size: cover;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        #main-container {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 450px;
-            width: 90%;
-        }
-
-        h1 { text-align: center; color: #0f3460; font-size: 22px; margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1a1a2e url('IMG_8196.jpg') no-repeat center center fixed; background-size: cover; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #main-container { background: rgba(255, 255, 255, 0.98); padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 550px; width: 95%; margin: 20px; }
+        h1, h2 { text-align: center; color: #16213e; margin-bottom: 20px; border-bottom: 2px solid #e94560; padding-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px; }
-        input { 
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
-            box-sizing: border-box; font-size: 14px;
-        }
-        button { 
-            width: 100%; padding: 12px; background-color: #e94560; color: white; 
-            border: none; border-radius: 6px; font-size: 16px; font-weight: bold;
-            cursor: pointer; margin-top: 10px; transition: 0.3s;
-        }
-        button:hover { background-color: #c62a48; }
-        
-        #qrcode-container { 
-            text-align: center; margin-top: 20px; 
-            padding: 15px; background: #f9f9f9; border-radius: 10px;
-        }
-        canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
-        #download-btn { 
-            display: none; margin-top: 15px; background-color: #0f3460;
-            text-decoration: none; color: white; padding: 10px; 
-            border-radius: 6px; font-size: 14px; text-align: center;
-        }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; color: #333; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 15px; background: #e94560; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 15px; }
+        button:hover { background: #c62a48; }
+        #qrcode-container { text-align: center; margin-top: 20px; padding: 15px; background: #fdfdfd; border: 1px dashed #ccc; border-radius: 10px; }
+        canvas { max-width: 100%; height: auto; margin-bottom: 10px; }
+        #download-btn { display: none; background: #0f3460; color: white; text-decoration: none; padding: 12px; border-radius: 6px; font-size: 14px; display: inline-block; width: 100%; box-sizing: border-box; }
+        #user-info { text-align: right; font-size: 12px; color: #666; font-weight: bold; }
         #login-error { color: #e94560; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="main-container">
-        <!-- LOGIN -->
-        <div id="login-container">
-            <h1>Acceso Administrador</h1>
-            <form id="login-form">
-                <div class="form-group"><label>Usuario:</label><input type="text" id="username" required></div>
-                <div class="form-group"><label>Contraseña:</label><input type="password" id="password" required></div>
-                <button type="submit">ENTRAR</button>
-                <p id="login-error"></p>
-            </form>
-        </div>
-
-        <!-- GENERADOR -->
-        <div id="generator-container" style="display:none;">
-            <h1>Generar Acceso QR</h1>
-            <form id="access-form">
-                <div class="form-group"><label>Nombre del Visitante:</label><input type="text" id="nombre" required></div>
-                <div class="form-group"><label>Cédula / ID:</label><input type="text" id="id" required></div>
-                <div class="form-group"><label>Placa Vehículo:</label><input type="text" id="placa" required></div>
-                <div class="form-group"><label>Fecha Expiración (Opcional):</label><input type="date" id="fecha-exp"></div>
-                <button type="submit">GENERAR CÓDIGO SEGURO</button>
-            </form>
-
-            <div id="qrcode-container">
-                <canvas id="qr-canvas"></canvas>
-                <a id="download-btn">DESCARGAR CÓDIGO QR</a>
-            </div>
-        </div>
+<div id="main-container">
+    <!-- LOGIN -->
+    <div id="login-container">
+        <h1>Control de Acceso</h1>
+        <form id="login-form">
+            <div class="form-group"><label>Usuario:</label><input type="text" id="username" required></div>
+            <div class="form-group"><label>Contraseña:</label><input type="password" id="password" required></div>
+            <button type="submit">INGRESAR AL SISTEMA</button>
+            <p id="login-error"></p>
+        </form>
     </div>
 
-    <script>
-        // --- CONFIGURACIÓN CRÍTICA ---
-        const SECRET_KEY = "PON_AQUI_TU_LLAVE_MISMOS_CARACTERES"; 
-        const USERS_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+    <!-- GENERADOR -->
+    <div id="generator-container" style="display:none;">
+        <div id="user-info"></div>
+        <h2>Generar Nuevo Acceso</h2>
+        <form id="access-form">
+            <div class="form-grid">
+                <div class="form-group"><label>Grado:</label><input type="text" id="grado" placeholder="Ej: CT, MY, etc." required></div>
+                <div class="form-group"><label>Dependencia:</label><input type="text" id="dependencia" placeholder="Oficina / Área" required></div>
+                
+                <div class="form-group full-width"><label>Nombres y Apellidos:</label><input type="text" id="nombre" required></div>
+                
+                <div class="form-group"><label>Cédula / ID:</label><input type="text" id="id" required></div>
+                <div class="form-group"><label>Fecha Expiración:</label><input type="date" id="fecha-exp"></div>
+                
+                <div class="form-group"><label>Tipo de Vehículo:</label>
+                    <select id="tipo-v">
+                        <option value="Carro">Carro</option>
+                        <option value="Moto">Moto</option>
+                        <option value="Bicicleta">Bicicleta</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Color:</label><input type="text" id="color-v" required></div>
+                <div class="form-group full-width"><label>Placa del Vehículo:</label><input type="text" id="placa" placeholder="Letras y Números" required></div>
+            </div>
+            <button type="submit">GENERAR QR ENCRIPTADO</button>
+        </form>
 
-        let adminUser = "";
+        <div id="qrcode-container">
+            <canvas id="qr-canvas"></canvas>
+            <a id="download-btn" style="display:none;">DESCARGAR IMAGEN QR</a>
+        </div>
+    </div>
+</div>
 
-        // Función para validar contraseña
-        async function hashString(str) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(str);
-            const hash = await crypto.subtle.digest('SHA-256', data);
-            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-        }
+<script>
+    const SECRET_KEY = "Colombia2026//"; // CAMBIAR ESTO Y PONER IGUAL EN VERIFICADOR
+    const USERS_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+    let adminName = "";
 
-        // Manejo de Login
-        document.getElementById('login-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            const hashed = await hashString(p);
+    async function hashPass(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
-            try {
-                const res = await fetch(USERS_URL + '?t=' + Date.now());
-                const users = await res.json();
-                if (users[u] && users[u] === hashed) {
-                    adminUser = u;
-                    document.getElementById('login-container').style.display = 'none';
-                    document.getElementById('generator-container').style.display = 'block';
-                } else {
-                    document.getElementById('login-error').innerText = "Credenciales Incorrectas";
-                }
-            } catch(err) { alert("Error al conectar con la base de datos de usuarios"); }
+    document.getElementById('login-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const u = document.getElementById('username').value;
+        const p = await hashPass(document.getElementById('password').value);
+        try {
+            const res = await fetch(USERS_URL + '?t=' + Date.now());
+            const users = await res.json();
+            if (users[u] && users[u] === p) {
+                adminName = u;
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('generator-container').style.display = 'block';
+                document.getElementById('user-info').innerText = "Admin: " + u;
+            } else { document.getElementById('login-error').innerText = "Error de acceso"; }
+        } catch(err) { alert("Error de conexión"); }
+    };
+
+    document.getElementById('access-form').onsubmit = (e) => {
+        e.preventDefault();
+        const exp = document.getElementById('fecha-exp').value;
+        
+        // Objeto compacto para no saturar el QR
+        const data = {
+            g: document.getElementById('grado').value,
+            n: document.getElementById('nombre').value,
+            id: document.getElementById('id').value,
+            d: document.getElementById('dependencia').value,
+            vt: document.getElementById('tipo-v').value,
+            vc: document.getElementById('color-v').value,
+            vp: document.getElementById('placa').value,
+            exp: exp ? new Date(exp + 'T23:59:59').getTime() : 0,
+            c: adminName,
+            f: new Date().toLocaleDateString()
         };
 
-        // Manejo de Generación de QR
-        document.getElementById('access-form').onsubmit = (e) => {
-            e.preventDefault();
-            
-            const expInput = document.getElementById('fecha-exp').value;
-            const expiration = expInput ? new Date(expInput + 'T23:59:59').getTime() : 0;
+        const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
+        const qr = new QRious({
+            element: document.getElementById('qr-canvas'),
+            value: encrypted,
+            size: 350,
+            level: 'M'
+        });
 
-            const rawData = {
-                n: document.getElementById('nombre').value,
-                id: document.getElementById('id').value,
-                v: { p: document.getElementById('placa').value },
-                exp: expiration,
-                c: adminUser,
-                f: new Date().toLocaleDateString()
-            };
-
-            try {
-                // 1. Encriptar
-                const encrypted = CryptoJS.AES.encrypt(JSON.stringify(rawData), SECRET_KEY).toString();
-
-                // 2. Generar QR en el Canvas
-                const qr = new QRious({
-                    element: document.getElementById('qr-canvas'),
-                    value: encrypted,
-                    size: 300,
-                    level: 'M' // Calidad media para soportar más datos
-                });
-
-                // 3. Habilitar Descarga
-                const btn = document.getElementById('download-btn');
-                btn.href = document.getElementById('qr-canvas').toDataURL("image/png");
-                btn.download = `QR_${rawData.n}.png`;
-                btn.style.display = "block";
-
-            } catch (err) {
-                console.error(err);
-                alert("Error al generar el QR. Intenta con menos texto.");
-            }
-        };
-    </script>
+        const btn = document.getElementById('download-btn');
+        btn.href = document.getElementById('qr-canvas').toDataURL("image/png");
+        btn.download = `Acceso_${data.vp}.png`;
+        btn.style.display = "block";
+    };
+</script>
 </body>
 </html>
