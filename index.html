@@ -70,34 +70,48 @@
     }
 
     function generarQR() {
-        const exp = document.getElementById('expira').value;
-        const data = {
-            g: document.getElementById('grado').value,
-            n: document.getElementById('nombre').value,
-            i: document.getElementById('id').value,
-            d: document.getElementById('dep').value,
-            t: document.getElementById('tv').value,
-            c: document.getElementById('color').value,
-            p: document.getElementById('placa').value,
-            e: exp ? new Date(exp + 'T23:59:59').getTime() : 0,
-            a: currentAdmin,
-            f: new Date().toLocaleDateString()
-        };
+    const exp = document.getElementById('expira').value;
+    
+    // Validar que los campos no estén vacíos para evitar errores
+    if(!document.getElementById('id').value || !document.getElementById('nombre').value) {
+        alert("Cédula y Nombre son obligatorios");
+        return;
+    }
 
-        const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
-        
-        new QRious({
-            element: document.getElementById('qr-canvas'),
-            value: encrypted,
-            size: 400,
-            level: 'L'
-        });
+    const data = {
+        g: document.getElementById('grado').value,
+        n: document.getElementById('nombre').value,
+        i: document.getElementById('id').value,
+        d: document.getElementById('dep').value,
+        t: document.getElementById('tv').value,
+        c: document.getElementById('color').value,
+        p: document.getElementById('placa').value,
+        e: exp ? new Date(exp + 'T23:59:59').getTime() : 0,
+        a: currentAdmin,
+        f: new Date().toLocaleDateString()
+    };
 
-        const btn = document.getElementById('download-btn');
-        btn.href = document.getElementById('qr-canvas').toDataURL();
-        btn.download = "QR_Acceso.png";
-        btn.style.display = "block";
+    // Encriptar
+    const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
+    
+    // GENERAR QR CON MARGEN BLANCO (padding)
+    const qr = new QRious({
+        element: document.getElementById('qr-canvas'),
+        value: encrypted,
+        size: 600,      // Aumentamos el tamaño para mejor resolución
+        level: 'M',     // Nivel de error Medio (el mejor equilibrio)
+        padding: 40     // ESTO ES LO MÁS IMPORTANTE: Crea el borde blanco
+    });
+
+    const btn = document.getElementById('download-btn');
+    btn.href = document.getElementById('qr-canvas').toDataURL("image/png");
+    btn.download = `Acceso_${data.p}.png`;
+    btn.style.display = "block";
+    
+    alert("Código QR generado con éxito. Ya puedes descargarlo.");
+}
     }
 </script>
 </body>
 </html>
+
