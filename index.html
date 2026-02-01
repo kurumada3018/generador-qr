@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Códigos QR de Acceso</title>
+    
+    <!-- Librerías cargadas desde internet para que no falle localmente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-color: #f0f2f5; /* Color de respaldo si no carga la imagen */
+            background-image: url('IMG_8196.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #main-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1, h3 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"], select, input[type="date"] { 
+            box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;
+        }
+        button { display: block; width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        #qrcode-container { text-align: center; margin-top: 20px; }
+        #qrcode { display: inline-block; padding: 10px; background: white; border: 1px solid #ddd; }
+        #download-link { 
+            display: none; margin-top: 15px; text-align: center; 
+            text-decoration: none; background: #28a745; color: white; padding: 10px; border-radius: 5px;
+        }
+        #login-error { color: red; text-align: center; margin-top: 10px; font-weight: bold; }
+        #user-info { text-align: right; color: #555; font-size: 0.9em; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <!-- LOGIN -->
+        <div id="login-container">
+            <h1>Iniciar Sesión</h1>
+            <form id="login-form">
+                <div class="form-group"><label>Usuario:</label><input type="text" id="username" required></div>
+                <div class="form-group"><label>Contraseña:</label><input type="password" id="password" required></div>
+                <button type="submit">Ingresar</button>
+                <p id="login-error"></p>
+            </form>
+        </div>
+
+        <!-- GENERADOR -->
+        <div id="generator-container" style="display:none;">
+            <p id="user-info"></p>
+            <h1>Generador de QR</h1>
+            <form id="access-form">
+                <div class="form-group"><label>Nombre Completo:</label><input type="text" id="nombre" required></div>
+                <div class="form-group"><label>ID / Identificación:</label><input type="text" id="id" required></div>
+                <div class="form-group"><label>Plaza / Parqueadero:</label><input type="text" id="parqueadero"></div>
+                <div class="form-group"><label>Fecha Expiración (Opcional):</label><input type="date" id="fecha-exp"></div>
+                <hr>
+                <h3>Vehículo</h3>
+                <div class="form-group"><label>Tipo:</label><input type="text" id="vehiculo" placeholder="Ej: Carro, Moto" required></div>
+                <div class="form-group"><label>Placa:</label><input type="text" id="placa" required></div>
+                <button type="submit">Generar Código QR Encriptado</button>
+            </form>
+            <div id="qrcode-container">
+                <div id="qrcode"></div>
+                <a id="download-link">Descargar Imagen QR</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const SECRET_KEY = "TU_LLAVE_AQUI"; // CAMBIA ESTO Y PONLO IGUAL EN EL VERIFICADOR
+        const USERS_LIST_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+
+        let currentUser = null;
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorLabel = document.getElementById('login-error');
+            
+            try {
+                const response = await fetch(USERS_LIST_URL + '?t=' + Date.now());
+                const users = await response.json();
+                const hashed = await hashPassword(pass);
+
+                if (users[user] && users[user] === hashed) {
+                    currentUser = user;
+                    document.getElementById('login-container').style.display = 'none';
+                    document.getElementById('generator-container').style.display = 'block';
+                    document.getElementById('user-info').textContent = "Conectado como: " + user;
+                } else {
+                    errorLabel.textContent = "Usuario o contraseña incorrectos.";
+                }
+            } catch (err) {
+                errorLabel.textContent = "Error al conectar con la base de datos.";
+            }
+        });
+
+        document.getElementById('access-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const expInput = document.getElementById('fecha-exp').value;
+            const expiration = expInput ? new Date(expInput + 'T23:59:59').getTime() : 0;
+
+            const data = {
+                n: document.getElementById('nombre').value,
+                id: document.getElementById('id').value,
+                park: document.getElementById('parqueadero').value,
+                v: { t: document.getElementById('vehiculo').value, p: document.getElementById('placa').value },
+                exp: expiration,
+                c: currentUser,
+                f: new Date().toLocaleDateString()
+            };
+
+            // CIFRADO AES
+            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
+
+            const qrDiv = document.getElementById('qrcode');
+            qrDiv.innerHTML = '';
+            new QRCode(qrDiv, { text: encrypted, width: 256, height: 256 });
+
+            setTimeout(() => {
+                const img = qrDiv.querySelector('img');
+                if(img) {
+                    const link = document.getElementById('download-link');
+                    link.href = img.src;
+                    link.download = "QR_Acceso.png";
+                    link.style.display = "block";
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
