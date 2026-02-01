@@ -2,53 +2,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>GENERADOR QR SEGURO</title>
+    <title>GENERADOR V4 - SEGURO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a2e; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; color: #333; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; }
+        body { font-family: sans-serif; background: #1a1a2e; color: #333; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         input, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background: #e94560; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #qr-result { text-align: center; margin-top: 20px; display: none; background: white; padding: 15px; border: 2px solid #eee; }
-        canvas { max-width: 100%; height: auto; }
-        .download { display: block; margin-top: 15px; background: #0f3460; color: white; text-decoration: none; padding: 10px; border-radius: 5px; }
+        #qr-box { text-align: center; margin-top: 20px; display: none; }
+        canvas { border: 10px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .ver { font-size: 10px; color: #ccc; text-align: center; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div id="login-box">
-        <h2>Acceso Seguridad</h2>
+<div class="card">
+    <div id="login-section">
+        <h2 style="text-align:center">Admin V4</h2>
         <input type="text" id="user" placeholder="Usuario">
         <input type="password" id="pass" placeholder="Contraseña">
-        <button onclick="login()">ENTRAR</button>
+        <button onclick="login()">INGRESAR</button>
     </div>
 
-    <div id="app-box" style="display:none">
-        <h2>Nuevo Registro</h2>
+    <div id="app-section" style="display:none">
+        <h2 style="text-align:center">Nuevo Registro</h2>
         <label>Grado:</label><input type="text" id="g">
-        <label>Nombres y Apellidos:</label><input type="text" id="n">
-        <label>Cédula (ID):</label><input type="text" id="i">
+        <label>Nombres:</label><input type="text" id="n">
+        <label>ID:</label><input type="text" id="i">
         <label>Dependencia:</label><input type="text" id="d">
-        <label>Vehículo:</label>
-        <select id="v"><option>Carro</option><option>Moto</option><option>Bicicleta</option></select>
+        <label>Vehículo:</label><select id="t"><option>Carro</option><option>Moto</option><option>Bici</option></select>
         <label>Color:</label><input type="text" id="c">
         <label>Placa:</label><input type="text" id="p">
-        <label>Expiración:</label><input type="date" id="e">
-        
+        <label>Expira:</label><input type="date" id="e">
         <button onclick="generar()">GENERAR QR</button>
-
-        <div id="qr-result">
+        <div id="qr-box">
             <canvas id="canvas"></canvas>
-            <a id="link" class="download">DESCARGAR QR</a>
+            <p>Haz clic derecho en el QR para guardar</p>
         </div>
     </div>
+    <p class="ver">Versión de Seguridad: 4.0.1 (Industrial)</p>
 </div>
 
 <script>
-    const LLAVE = "SISTEMA_SEGURIDAD_2024"; // LLAVE MAESTRA
-    const GIST = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+    const LLAVE_MAESTRA = "LLAVE_UNIVERSAL_99"; 
+    const GIST_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
     let admin = "";
 
     async function login() {
@@ -56,46 +53,43 @@
         const p = document.getElementById('pass').value;
         const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)).then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
         try {
-            const r = await fetch(GIST + '?t=' + Date.now());
+            const r = await fetch(GIST_URL + '?t=' + Date.now());
             const data = await r.json();
             if(data[u] === hash) {
                 admin = u;
-                document.getElementById('login-box').style.display='none';
-                document.getElementById('app-box').style.display='block';
-            } else { alert("Usuario/Clave incorrectos"); }
+                document.getElementById('login-section').style.display='none';
+                document.getElementById('app-section').style.display='block';
+            } else { alert("Acceso denegado"); }
         } catch(e) { alert("Error de red"); }
     }
 
     function generar() {
+        // UNIÓN DE DATOS EN FORMATO ULTRA-COMPACTO
         const exp = document.getElementById('e').value;
-        // COMPRESIÓN: Usamos | para separar y ahorrar espacio
-        const raw = [
+        const dataStr = [
             document.getElementById('g').value,
             document.getElementById('n').value,
             document.getElementById('i').value,
             document.getElementById('d').value,
-            document.getElementById('v').value,
+            document.getElementById('t').value,
             document.getElementById('c').value,
             document.getElementById('p').value,
             exp ? new Date(exp + 'T23:59:59').getTime() : 0,
-            admin,
-            new Date().toLocaleDateString()
+            admin
         ].join('|');
 
-        // Encriptar cadena corta
-        const cifrado = CryptoJS.AES.encrypt(raw, LLAVE).toString();
+        // ENCRIPTACIÓN AES
+        const cifrado = CryptoJS.AES.encrypt(dataStr, LLAVE_MAESTRA).toString();
         
-        const qr = new QRious({
+        // CONFIGURACIÓN DE QR PARA MÁXIMA LECTURA
+        new QRious({
             element: document.getElementById('canvas'),
             value: cifrado,
             size: 500,
-            level: 'L', // Puntos más grandes
-            padding: 30  // Margen blanco para que el lector lo vea
+            level: 'L', // Nivel L permite puntos más grandes (mejor para archivos)
+            padding: 40 // Margen blanco crítico para que el lector lo vea
         });
-
-        document.getElementById('qr-result').style.display = 'block';
-        document.getElementById('link').href = document.getElementById('canvas').toDataURL();
-        document.getElementById('link').download = "QR_ACCESO.png";
+        document.getElementById('qr-box').style.display = 'block';
     }
 </script>
 </body>
