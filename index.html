@@ -1,36 +1,103 @@
-// --- DENTRO DE TU GENERADOR ---
-document.getElementById('access-form').onsubmit = (e) => {
-    e.preventDefault();
-    const exp = document.getElementById('fecha-exp').value;
-    
-    // Simplificamos nombres de variables para acortar el QR
-    const data = {
-        g: document.getElementById('grado').value,
-        n: document.getElementById('nombre').value,
-        i: document.getElementById('id').value, // 'i' en lugar de 'id'
-        d: document.getElementById('dependencia').value,
-        t: document.getElementById('tipo-v').value,
-        c: document.getElementById('color-v').value,
-        p: document.getElementById('placa').value,
-        e: exp ? new Date(exp + 'T23:59:59').getTime() : 0,
-        a: adminName, // 'a' de admin
-        f: new Date().toLocaleDateString()
-    };
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador QR de Seguridad</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a2e; color: #333; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-weight: bold; font-size: 12px; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; background: #e94560; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        #qrcode-container { text-align: center; margin-top: 20px; background: #f4f4f4; padding: 10px; }
+        canvas { max-width: 100%; }
+        #download-btn { display: none; background: #0f3460; color: white; text-decoration: none; padding: 10px; display: block; margin-top: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
 
-    const strData = JSON.stringify(data);
-    const encrypted = CryptoJS.AES.encrypt(strData, SECRET_KEY).toString();
+<div class="card">
+    <div id="login-section">
+        <h2>Ingreso Admin</h2>
+        <input type="text" id="user" placeholder="Usuario"><br><br>
+        <input type="password" id="pass" placeholder="Contraseña"><br>
+        <button onclick="login()">ENTRAR</button>
+    </div>
 
-    // GENERAR QR (Asegúrate de que el size sea grande)
-    const qr = new QRious({
-        element: document.getElementById('qr-canvas'),
-        value: encrypted,
-        size: 400,
-        level: 'L' // Calidad L es mejor para textos largos
-    });
-    
-    // Muestra en consola lo que se está guardando (para tu control)
-    console.log("Datos encriptados:", encrypted);
+    <div id="main-section" style="display:none">
+        <h2>Generar Acceso</h2>
+        <div class="form-group"><label>Grado:</label><input type="text" id="grado"></div>
+        <div class="form-group"><label>Nombres y Apellidos:</label><input type="text" id="nombre"></div>
+        <div class="form-group"><label>Cédula (ID):</label><input type="text" id="id"></div>
+        <div class="form-group"><label>Dependencia:</label><input type="text" id="dep"></div>
+        <div class="form-group"><label>Vehículo:</label>
+            <select id="tv"><option>Carro</option><option>Moto</option><option>Bicicleta</option></select>
+        </div>
+        <div class="form-group"><label>Color:</label><input type="text" id="color"></div>
+        <div class="form-group"><label>Placa:</label><input type="text" id="placa"></div>
+        <div class="form-group"><label>Expiración:</label><input type="date" id="expira"></div>
+        
+        <button onclick="generarQR()">GENERAR QR ENCRIPTADO</button>
 
-    document.getElementById('download-btn').style.display = "block";
-    document.getElementById('download-btn').href = document.getElementById('qr-canvas').toDataURL();
-};
+        <div id="qrcode-container">
+            <canvas id="qr-canvas"></canvas>
+            <a id="download-btn" href="#" style="display:none">DESCARGAR QR</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURACIÓN CLAVE ---
+    const SECRET_KEY = "123456"; // CAMBIA ESTO Y PONLO IGUAL EN EL VERIFICADOR
+    const USERS_URL = 'https://gist.githubusercontent.com/kurumada3018/2348f46cc2f7fd407687b1ddd72b8398/raw/79fd77d6d8be1d8332c62288a63ce8bab783e9a8/usuarios_generador.json';
+    let currentAdmin = "";
+
+    async function login() {
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
+        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)).then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
+        
+        const res = await fetch(USERS_URL + '?t=' + Date.now());
+        const users = await res.json();
+        if(users[u] === hash) {
+            currentAdmin = u;
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('main-section').style.display = 'block';
+        } else { alert("Error"); }
+    }
+
+    function generarQR() {
+        const exp = document.getElementById('expira').value;
+        const data = {
+            g: document.getElementById('grado').value,
+            n: document.getElementById('nombre').value,
+            i: document.getElementById('id').value,
+            d: document.getElementById('dep').value,
+            t: document.getElementById('tv').value,
+            c: document.getElementById('color').value,
+            p: document.getElementById('placa').value,
+            e: exp ? new Date(exp + 'T23:59:59').getTime() : 0,
+            a: currentAdmin,
+            f: new Date().toLocaleDateString()
+        };
+
+        const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
+        
+        new QRious({
+            element: document.getElementById('qr-canvas'),
+            value: encrypted,
+            size: 400,
+            level: 'L'
+        });
+
+        const btn = document.getElementById('download-btn');
+        btn.href = document.getElementById('qr-canvas').toDataURL();
+        btn.download = "QR_Acceso.png";
+        btn.style.display = "block";
+    }
+</script>
+</body>
+</html>
